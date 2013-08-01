@@ -1,0 +1,178 @@
+(define grammar (require "./grammar.js"))
+(define lodash (require "lodash"))
+
+(define forEach lodash.forEach)
+(define init lodash.initial)
+(define first lodash.first)
+(define last lodash.last)
+(define tail lodash.tail)
+
+(define mkstring (lambda (arr, start, sep, end, mapfn)
+    (set mapfn (or mapfn (lambda (x) x)))
+    (define build start)
+    (forEach (init arr) (lambda (elem)
+        (set build (+ build (mapfn elem) sep))))
+    (if (not (= arr.length 0))
+        (set build (+ build (mapfn (last arr))))
+        false)
+    (set build (+ build end))
+    build
+))
+
+(define buildExprs (lambda (exprs)
+    (define build "")
+    (set build (+ build (mkstring (init exprs) "", "", "", (lambda (n)
+        (+ (compile n) ";\n")))))
+    (set build (+ build "return " (compile (last exprs)) ";\n"))
+    build
+ ))
+
+(define error (lambda (msg)
+    (throw (Error msg))
+    false
+))
+
+(define cLambda (lambda (node)
+    (define build "(function ")
+    (set build (+ build (mkstring node.vars "(", ",", "){\n", compile)))
+
+    (set build (+ build (buildExprs node.exprs)))
+    (+ build "})")
+))
+
+(define cBegin (lambda (node)
+    (set node.vars [])
+    (+ (cLambda node) "()")
+))
+
+(define cCond (lambda (node)
+    (define build "(function () {\n")
+    (define f (first node.pairs))
+    (set build (+ build "if (" (compile f.l) ") {\n return " (compile f.r) ";\n} "))
+
+    (forEach (tail node.pairs) (lambda (pair)
+        (set build (+ build "else if (" (compile pair.l) ") { \n return " (compile pair.r) ";\n "))))
+
+    (+ build "\n}})()")
+))
+
+(define cDefine (lambda (node)
+    (+ "var " (compile node.l) " = " (compile node.r) ";")
+))
+
+(define cIf (lambda (node)
+    (+ "((" (compile node.cond) ") ? (" (compile node.thn) ") : (" (compile node.els) "))")
+))
+
+(define cLet (lambda (node)
+    (define build "(function ")
+    (set build (+ build (mkstring node.pairs "(", ",", ") {\n" (lambda (pair)
+        (compile pair.l)))))
+
+    (set build (+ build (buildExprs node.exprs)))
+
+    (+ build "}" (mkstring node.pairs "(", ",", "))" (lambda (pair)
+        (compile pair.r))))
+))
+
+(define cLetrec (lambda (node)
+    (define build "(function () {")
+    (set build (+ build (mkstring node.pairs "", "", "" (lambda (node)
+        (+ "var " (compile node.l) " = " (compile node.r) ";\n")))))
+
+    (set build (+ build (buildExprs node.exprs)))
+
+    (+ build "}())")
+))
+
+(define cSet (lambda (node)
+    (+ "(" (compile node.ident) " = " (compile node.value) ")")
+))
+
+(define cSwitch (lambda (node)
+    (define build "(function () {\n")
+    (set build (+ build "switch (" (compile node.expr) "){\n"
+                  (mkstring node.pairs "" "" "" (lambda (pair)
+                        (+ "case " (compile pair.l) ":\n return " (compile pair.r) ";\nbreak;")))))
+    (+ build "default:\nreturn " (compile node.default.expr) ";\nbreak;\n}}())")
+))
+
+(define cAttribute (lambda (node)
+    (+ (compile node.expr) "." (compile node.attr))
+))
+
+(define cMethod (lambda (node)
+    (+ (compile node.expr) "." (compile node.name) (mkstring node.args "(" "," ")" compile))
+))
+
+(define cListLiteral (lambda (node)
+    (mkstring node.value "[" "," "]" compile)
+))
+
+(define cSexpr (lambda (node)
+    (define f (first node.exprs))
+    (define rst (tail node.exprs))
+
+    (define squash (lambda (symbol def)
+        (switch rst.length
+            (0 def)
+            (1 (compile (first rst)))
+            (default (mkstring rst "(" symbol ")" compile)))))
+
+    (switch f.type
+        ('special_ident (switch f.value
+            ("+"   (squash "+" "0"))
+            ("-"   (squash "-" "0"))
+            ("*"   (squash "*" "1"))
+            ("/"   (squash "/" "1"))
+            ("="   (+ "(" (compile (first rst)) "===" (compile (first (tail rst))) ")"))
+            (default (error (+ "SPECIAL IDENTIFIER NOT VALID: " (JSON.stringify node))))))
+        ('identifier (switch f.value
+            ("or"  (squash "||" "false"))
+            ("and" (squash "&&" "true"))
+            ("thunk" (compile {type: "lambda", vars: [], exprs: rst}))
+            ("cat" (squash "+" "\"\""))
+            ("nth" (+ (compile (first (tail rst))) "[" (compile (first rst)) "]"))
+            ("not" (+ "(!(" (compile (first rst)) "))"))
+            (default (+ (compile f) (mkstring rst "(" "," ")" compile)))))
+        (default (+ (compile f) (mkstring rst "(" "," ")" compile))))
+))
+
+(define cList (lambda (node)
+    (mkstring node.value "[" "," "]" compile)
+))
+
+(define cObj (lambda (node)
+    (mkstring node.value "{" "," "}" (lambda (kvp)
+        (+ (compile kvp.value.v1) ":" (compile kvp.value.v2))))
+))
+
+(define compile (lambda (node)
+    (switch node.type
+        ('string node.value)
+        ('number node.value)
+        ('quote_ident (+ node.value "'"))
+        ('identifier node.value)
+        ('lambda (cLambda node))
+        ('begin (cBegin node))
+        ('cond (cCond node))
+        ('define (cDefine node))
+        ('if (cIf node))
+        ('let (cLet node))
+        ('letrec (cLetrec node))
+        ('set (cSet node))
+        ('switch (cSwitch node))
+        ('thunk (cThunk node))
+        ('attribute (cAttribute node))
+        ('method (cMethod node))
+        ('sexpr (cSexpr node))
+        ('list (cList node))
+        ('obj_lit (cObj node))
+        (default (error (+ "CAN NOT MATCH " node.type "\n" (JSON.stringify node)))))
+))
+
+(define andromeda (lambda (program)
+    (mkstring (grammar.parse program) "" ";\n" ";\n" compile)
+))
+
+(set module.exports andromeda)

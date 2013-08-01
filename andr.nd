@@ -1,0 +1,26 @@
+(define fs (require "fs"))
+(define andromeda (require "./andromeda.nd.js"))
+(define lodash (require "lodash"))
+
+(define first lodash.first)
+(define rest lodash.rest)
+
+
+(define rethrow (lambda (error)
+    (throw error)
+    false
+))
+
+(define compileByName (lambda (name)
+    (fs.readFile name "utf8" (lambda (error data)
+        (if error (rethrow error) false)
+        (define compiled (andromeda data))
+        (define outName (+ name ".js"))
+        (fs.writeFile outName compiled (lambda (error)
+            (if error (rethrow error) false)
+            (console.log "Written to" outName)
+        ))
+    ))
+))
+
+(compileByName (nth process.argv 2 ))
