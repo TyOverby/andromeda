@@ -120,7 +120,7 @@ break;case "*":
 break;case "/":
  return squash("/","1");
 break;case "=":
- return ("("+compile(first(rst))+"==="+compile(first(tail(rst)))+")");
+ return ("("+compile(first(rst))+"==="+compile(rst[1])+")");
 break;default:
 return error(("SPECIAL IDENTIFIER NOT VALID: "+JSON.stringify(node)));
 break;
@@ -137,7 +137,7 @@ break;case "thunk":
 break;case "cat":
  return squash("+","\"\"");
 break;case "nth":
- return (compile(first(tail(rst)))+"["+compile(first(rst))+"]");
+ return (compile(rst[1])+"["+compile(first(rst))+"]");
 break;case "not":
  return ("(!("+compile(first(rst))+"))");
 break;default:

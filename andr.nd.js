@@ -4,6 +4,7 @@ var andromeda = require("./andromeda.nd.js");;
 var lodash = require("lodash");;
 var first = lodash.first;;
 var rest = lodash.rest;;
+var map = lodash.map;;
 var rethrow = (function (error){
 throw(error);
 return false;
@@ -19,4 +20,4 @@ return console.log("Written to",outName);
 }));
 }));
 });;
-compileByName(process.argv[2]);
+map(rest(process.argv,2),compileByName);

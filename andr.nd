@@ -4,6 +4,7 @@
 
 (define first lodash.first)
 (define rest lodash.rest)
+(define map lodash.map)
 
 
 (define rethrow (lambda (error)
@@ -23,4 +24,4 @@
     ))
 ))
 
-(compileByName (nth 2 process.argv ))
+(map (rest process.argv 2) compileByName)

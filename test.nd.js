@@ -42,3 +42,5 @@ return t.done();
 "Regressions";
 (exports.testThrowFailure1 = test("(throw SomeError)","throw(SomeError)"));
 (exports.testLambdaFailure1 = test("(fn 'lambda)","fn('lambda')"));
+(exports.testNth1 = test("(nth 1 hi)","hi[1]"));
+(exports.testNth2 = test("(nth (foo) (bar))","bar()[foo()]"));

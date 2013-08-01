@@ -1,7 +1,7 @@
 {
     "name": "andromeda",
     "description": "A half-decent lisp -> javascript compiler",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "private": false,
     "bin": "./andr.nd.js",
     "scripts": {
@@ -13,6 +13,6 @@
     "devDependencies": {
         "jison": "0.4.6",
         "nodeunit": "0.8.1",
-        "andromeda": "0.0.4"
+        "andromeda": "0.0.5"
     }
 }
