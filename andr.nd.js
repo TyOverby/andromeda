@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 var fs = require("fs");;
 var andromeda = require("./andromeda.nd.js");;
 var lodash = require("lodash");;
@@ -18,4 +19,4 @@ return console.log("Written to",outName);
 }));
 }));
 });;
-compileByName(2[process.argv]);
+compileByName(process.argv[2]);

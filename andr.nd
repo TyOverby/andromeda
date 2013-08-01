@@ -23,4 +23,4 @@
     ))
 ))
 
-(compileByName (nth process.argv 2 ))
+(compileByName (nth 2 process.argv ))
